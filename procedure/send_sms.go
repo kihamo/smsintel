@@ -5,7 +5,7 @@ const (
 )
 
 type SendSmsInput struct {
-	Txt           *string `json:"txt"`
+	Txt           string  `json:"txt"`
 	To            *string `json:"to"`
 	IdGroup       *string `json:"idGroup"`
 	Source        *string `json:"source"`
