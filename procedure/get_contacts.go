@@ -8,8 +8,8 @@ const (
 )
 
 type GetContactsInput struct {
-	IdGroup int64  `json:"idGroup"`
-	Phone   string `json:"phone"`
+	IdGroup *int64  `json:"idGroup"`
+	Phone   *string `json:"phone"`
 }
 
 type GetContactsOutput struct {
