@@ -125,9 +125,11 @@ func (r *Request) Send() (err error) {
 
 	if response, ok := response.(map[string]interface{}); ok {
 		code := gotypes.ToInt64(response["code"])
-		message := gotypes.ToString(response["descr"])
 
-		return NewApiError(code, message, nil)
+		if code != 1 {
+			message := gotypes.ToString(response["descr"])
+			return NewApiError(code, message, nil)
+		}
 	}
 
 	converter := gotypes.NewConverter(response, r.Output)
