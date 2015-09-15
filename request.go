@@ -3,12 +3,14 @@ package smsintel
 //go:generate goimports -w ./
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,8 +33,10 @@ type Request struct {
 	procedure string
 	login     string
 	password  string
-	request   *http.Request
 	response  *http.Response
+
+	request       *http.Request
+	requestParams *url.Values
 
 	Input  interface{}
 	Output interface{}
@@ -42,27 +46,66 @@ func NewRequest(procedure string, login string, password string, input interface
 	httpRequest, _ := http.NewRequest("GET", smsIntelApiUrl+procedure+".php", nil)
 
 	return &Request{
-		procedure: procedure,
-		login:     login,
-		password:  password,
-		request:   httpRequest,
-		Input:     input,
-		Output:    output,
+		procedure:     procedure,
+		login:         login,
+		password:      password,
+		request:       httpRequest,
+		requestParams: &url.Values{},
+		Input:         input,
+		Output:        output,
 	}
 }
 
-func (r *Request) getParamsFromInput() *url.Values {
-	params := &url.Values{}
+func (r *Request) setParamsFromInput() {
+	input := reflect.Indirect(reflect.ValueOf(r.Input))
+	if input.Kind() == reflect.Struct {
+		for i := 0; i < input.NumField(); i++ {
+			field := input.Type().Field(i)
 
-	return params
+			tag := field.Tag.Get("json")
+			if tag == "" {
+				continue
+			}
+
+			key := strings.Split(tag, ",")[0]
+			value := input.FieldByName(field.Name)
+
+			if value.Kind() == reflect.Ptr {
+				value = reflect.Indirect(value)
+
+				if !value.IsValid() {
+					continue
+				}
+			}
+
+			if value.Kind() == reflect.Bool {
+				r.requestParams.Add(key, strconv.Itoa(gotypes.ToInt(value.Interface())))
+			} else {
+				r.requestParams.Add(key, gotypes.ToString(value.Interface()))
+			}
+		}
+	}
+}
+
+func (r *Request) sign() {
+	r.requestParams.Add("login", r.login)
+	r.requestParams.Add("password", r.password)
 }
 
 func (r *Request) Send() (err error) {
-	params := r.getParamsFromInput()
-	params.Add("login", r.login)
-	params.Add("password", r.password)
+	r.setParamsFromInput()
+	r.sign()
 
-	r.request.URL, _ = url.Parse(r.request.URL.String() + "?" + params.Encode())
+	var buf bytes.Buffer
+
+	if r.request.URL.RawQuery != "" {
+		buf.WriteString(r.request.URL.RawQuery)
+		buf.WriteByte('&')
+	}
+
+	buf.WriteString(r.requestParams.Encode())
+	r.request.URL.RawQuery = buf.String()
+
 	if r.response, err = client.Do(r.request); err != nil {
 		return err
 	}
@@ -80,13 +123,17 @@ func (r *Request) Send() (err error) {
 		return err
 	}
 
-	fmt.Println(r.request.URL.String())
-	fmt.Println(string(content))
+	if response, ok := response.(map[string]interface{}); ok {
+		code := gotypes.ToInt64(response["code"])
+		message := gotypes.ToString(response["descr"])
+
+		return NewApiError(code, message, nil)
+	}
 
 	converter := gotypes.NewConverter(response, r.Output)
 	if !converter.Valid() {
-		err = errors.New(strings.Join(converter.GetInvalidFields(), ","))
+		return errors.New(strings.Join(converter.GetInvalidFields(), ","))
 	}
 
-	return err
+	return nil
 }
