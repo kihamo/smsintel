@@ -8,14 +8,14 @@ type InfoInput struct {
 }
 
 type InfoOutput struct {
-	Code                    int64           `json:"code"`
-	Descr                   string          `json:"descr"`
-	Account                 float64         `json:"account"`
-	OrganizationDescription string          `json:"organizationDescr"`
-	OrganizationCode        string          `json:"ocode"`
-	Sources                 []string        `json:"source"`
-	ReceiveNumbers          []string        `json:"receive_numbers,omitempty"`
-	UserAccess              map[string]bool `json:"userAccess"`
+	Code                    int64                `json:"code"`
+	Descr                   string               `json:"descr"`
+	Account                 float64              `json:"account"`
+	OrganizationDescription string               `json:"organizationDescr"`
+	OrganizationCode        string               `json:"ocode"`
+	Sources                 []string             `json:"source"`
+	ReceiveNumbers          []string             `json:"receive_numbers,omitempty"`
+	UserAccess              InfoUserAccessOutput `json:"userAccess"`
 }
 
 type InfoUserAccessOutput struct {

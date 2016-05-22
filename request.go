@@ -1,11 +1,10 @@
 package smsintel
 
-//go:generate goimports -w ./
-
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,10 +14,6 @@ import (
 	"time"
 
 	"github.com/kihamo/gotypes"
-)
-
-const (
-	smsIntelApiUrl = "https://lcab.smsintel.ru/lcabApi/"
 )
 
 var client *http.Client
@@ -42,8 +37,8 @@ type Request struct {
 	Output interface{}
 }
 
-func NewRequest(procedure string, login string, password string, input interface{}, output interface{}) *Request {
-	httpRequest, _ := http.NewRequest("GET", smsIntelApiUrl+procedure+".php", nil)
+func NewRequest(apiUrl, procedure, login, password string, input interface{}, output interface{}) *Request {
+	httpRequest, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s.php", apiUrl, procedure), nil)
 
 	return &Request{
 		procedure:     procedure,
