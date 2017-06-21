@@ -2,6 +2,7 @@ package smsintel
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,51 +12,30 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/kihamo/gotypes"
 )
 
-var client *http.Client
-
-func init() {
-	client = &http.Client{
-		Timeout: time.Second * 5,
-	}
-}
-
 type Request struct {
-	procedure string
-	login     string
-	password  string
-	response  *http.Response
-
 	request       *http.Request
 	requestParams *url.Values
 
-	Input  interface{}
-	Output interface{}
+	output interface{}
 }
 
 func NewRequest(apiUrl, procedure, login, password string, input interface{}, output interface{}) *Request {
 	httpRequest, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s.php", apiUrl, procedure), nil)
 
-	return &Request{
-		procedure:     procedure,
-		login:         login,
-		password:      password,
+	r := &Request{
 		request:       httpRequest,
 		requestParams: &url.Values{},
-		Input:         input,
-		Output:        output,
+		output:        output,
 	}
-}
 
-func (r *Request) setParamsFromInput() {
-	input := reflect.Indirect(reflect.ValueOf(r.Input))
-	if input.Kind() == reflect.Struct {
-		for i := 0; i < input.NumField(); i++ {
-			field := input.Type().Field(i)
+	reflectInput := reflect.Indirect(reflect.ValueOf(input))
+	if reflectInput.Kind() == reflect.Struct {
+		for i := 0; i < reflectInput.NumField(); i++ {
+			field := reflectInput.Type().Field(i)
 
 			tag := field.Tag.Get("json")
 			if tag == "" {
@@ -63,7 +43,7 @@ func (r *Request) setParamsFromInput() {
 			}
 
 			key := strings.Split(tag, ",")[0]
-			value := input.FieldByName(field.Name)
+			value := reflectInput.FieldByName(field.Name)
 
 			if value.Kind() == reflect.Ptr {
 				value = reflect.Indirect(value)
@@ -80,16 +60,9 @@ func (r *Request) setParamsFromInput() {
 			}
 		}
 	}
-}
 
-func (r *Request) sign() {
-	r.requestParams.Add("login", r.login)
-	r.requestParams.Add("password", r.password)
-}
-
-func (r *Request) Send() (err error) {
-	r.setParamsFromInput()
-	r.sign()
+	r.requestParams.Add("login", login)
+	r.requestParams.Add("password", password)
 
 	var buf bytes.Buffer
 
@@ -101,13 +74,28 @@ func (r *Request) Send() (err error) {
 	buf.WriteString(r.requestParams.Encode())
 	r.request.URL.RawQuery = buf.String()
 
-	if r.response, err = client.Do(r.request); err != nil {
-		return err
+	return r
+}
+
+func (r *Request) Send() error {
+	return r.SendWithContext(context.Background())
+}
+
+func (r *Request) SendWithContext(ctx context.Context) error {
+	req := r.request.WithContext(ctx)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 	}
 
-	defer r.response.Body.Close()
+	defer resp.Body.Close()
 
-	content, err := ioutil.ReadAll(r.response.Body)
+	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -127,7 +115,7 @@ func (r *Request) Send() (err error) {
 		}
 	}
 
-	converter := gotypes.NewConverter(response, r.Output)
+	converter := gotypes.NewConverter(response, r.output)
 	if !converter.Valid() {
 		return errors.New(strings.Join(converter.GetInvalidFields(), ","))
 	}

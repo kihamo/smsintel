@@ -1,28 +1,40 @@
 package smsintel
 
 import (
+	"context"
+
 	"github.com/kihamo/smsintel/procedure"
 )
 
-func (s *SmsIntel) SendSms(input *procedure.SendSmsInput) (*procedure.SendSmsOutput, error) {
-	request := s.SendSmsRequest(input)
-	return request.Output.(*procedure.SendSmsOutput), request.Send()
+func (s *SmsIntel) GetPhoneInfo(input *procedure.GetPhoneInfoInput) (*procedure.GetPhoneInfoOutput, error) {
+	request := s.GetPhoneInfoRequest(input)
+	return request.output.(*procedure.GetPhoneInfoOutput), request.Send()
 }
 
-func (s *SmsIntel) SendSmsRequest(input *procedure.SendSmsInput) *Request {
+func (s *SmsIntel) GetPhoneInfoWithContext(ctx context.Context, input *procedure.GetPhoneInfoInput) (*procedure.GetPhoneInfoOutput, error) {
+	request := s.GetPhoneInfoRequest(input)
+	return request.output.(*procedure.GetPhoneInfoOutput), request.SendWithContext(ctx)
+}
+
+func (s *SmsIntel) GetPhoneInfoRequest(input *procedure.GetPhoneInfoInput) *Request {
 	if input == nil {
-		input = &procedure.SendSmsInput{}
+		input = &procedure.GetPhoneInfoInput{}
 	}
 
-	output := &procedure.SendSmsOutput{}
-	request := s.newRequest(procedure.SendSmsPath, input, output)
+	output := &procedure.GetPhoneInfoOutput{}
+	request := s.newRequest(procedure.GetPhoneInfoPath, input, output)
 
 	return request
 }
 
 func (s *SmsIntel) Info(input *procedure.InfoInput) (*procedure.InfoOutput, error) {
 	request := s.InfoRequest(input)
-	return request.Output.(*procedure.InfoOutput), request.Send()
+	return request.output.(*procedure.InfoOutput), request.Send()
+}
+
+func (s *SmsIntel) InfoWithContext(ctx context.Context, input *procedure.InfoInput) (*procedure.InfoOutput, error) {
+	request := s.InfoRequest(input)
+	return request.output.(*procedure.InfoOutput), request.SendWithContext(ctx)
 }
 
 func (s *SmsIntel) InfoRequest(input *procedure.InfoInput) *Request {
@@ -38,7 +50,12 @@ func (s *SmsIntel) InfoRequest(input *procedure.InfoInput) *Request {
 
 func (s *SmsIntel) RequestSource(input *procedure.RequestSourceInput) (*procedure.RequestSourceOutput, error) {
 	request := s.RequestSourceRequest(input)
-	return request.Output.(*procedure.RequestSourceOutput), request.Send()
+	return request.output.(*procedure.RequestSourceOutput), request.Send()
+}
+
+func (s *SmsIntel) RequestSourceWithContext(ctx context.Context, input *procedure.RequestSourceInput) (*procedure.RequestSourceOutput, error) {
+	request := s.RequestSourceRequest(input)
+	return request.output.(*procedure.RequestSourceOutput), request.SendWithContext(ctx)
 }
 
 func (s *SmsIntel) RequestSourceRequest(input *procedure.RequestSourceInput) *Request {
@@ -52,18 +69,23 @@ func (s *SmsIntel) RequestSourceRequest(input *procedure.RequestSourceInput) *Re
 	return request
 }
 
-func (s *SmsIntel) GetPhoneInfo(input *procedure.GetPhoneInfoInput) (*procedure.GetPhoneInfoOutput, error) {
-	request := s.GetPhoneInfoRequest(input)
-	return request.Output.(*procedure.GetPhoneInfoOutput), request.Send()
+func (s *SmsIntel) SendSms(input *procedure.SendSmsInput) (*procedure.SendSmsOutput, error) {
+	request := s.SendSmsRequest(input)
+	return request.output.(*procedure.SendSmsOutput), request.Send()
 }
 
-func (s *SmsIntel) GetPhoneInfoRequest(input *procedure.GetPhoneInfoInput) *Request {
+func (s *SmsIntel) SendSmsWithContext(ctx context.Context, input *procedure.SendSmsInput) (*procedure.SendSmsOutput, error) {
+	request := s.SendSmsRequest(input)
+	return request.output.(*procedure.SendSmsOutput), request.SendWithContext(ctx)
+}
+
+func (s *SmsIntel) SendSmsRequest(input *procedure.SendSmsInput) *Request {
 	if input == nil {
-		input = &procedure.GetPhoneInfoInput{}
+		input = &procedure.SendSmsInput{}
 	}
 
-	output := &procedure.GetPhoneInfoOutput{}
-	request := s.newRequest(procedure.GetPhoneInfoPath, input, output)
+	output := &procedure.SendSmsOutput{}
+	request := s.newRequest(procedure.SendSmsPath, input, output)
 
 	return request
 }
