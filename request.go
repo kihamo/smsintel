@@ -86,11 +86,13 @@ func (r *Request) SendWithContext(ctx context.Context) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
 
 	defer resp.Body.Close()
